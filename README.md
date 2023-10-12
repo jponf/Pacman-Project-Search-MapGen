@@ -24,22 +24,22 @@ self.goal = gameState.getFood().asList()[0]
 
 ## Implemented Strategies 🎮
 
+Many, if not all, strategies use the user specified `width` and
+`height` to define the size of the *search* grid. But, in order
+to generate nicer looking maps, when generating the layout its
+final size will be `2 * width + 1` and `2 * height + 1`.
+
 The current version implements the following list of strategies:
 
  * Random
 
-    Naive implementation that generates a map setting walls
-    based on the user defined *wall probability*.
+   Naive implementation that generates a map setting/removing walls
+   based on the user defined *wall probability*.
 
  * Randomized DFS
 
-    Uses a randomized DFS exploration to knock down walls
-    between *cells*.
-
-    It uses the user specified `width` and `height` to define
-    the size of the *search* grid. But, in order to generate
-    nicer looking maps, when generating the layout its final
-    size will be `2 * width + 1` and `2 * height + 1`.
+   Uses a randomized DFS exploration to knock down walls
+   between *cells*.
 
 ## Command Line Interface 💻
 

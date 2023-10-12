@@ -64,14 +64,14 @@ def _parse_args() -> ProgramArgs:
         "--width",
         type=int,
         required=True,
-        help="Maze width.",
+        help="Grid width. The final layout will be `2 * width + 1` wide.",
     )
 
     parser.add_argument(
         "--height",
         type=int,
         required=True,
-        help="Maze height.",
+        help="Grid height. The final layout will be `2 * height + 1` tall.",
     )
 
     parser.add_argument(

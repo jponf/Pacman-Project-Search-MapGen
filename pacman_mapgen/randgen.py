@@ -1,4 +1,5 @@
 from pacman_mapgen.core import CellType, Layout, LayoutGenerator, Position
+from pacman_mapgen.grid import CellGrid
 
 
 class RandomLayoutGenerator(LayoutGenerator):
@@ -27,22 +28,19 @@ class RandomLayoutGenerator(LayoutGenerator):
         """
         pacman_pos, food_pos = self.random_positions(count=2)
 
-        layout = Layout(
+        grid = CellGrid(
             width=self.width,
             height=self.height,
             init_type=CellType.EMPTY,
         )
+        grid[pacman_pos].type = CellType.PACMAN
+        grid[food_pos].type = CellType.FOOD
 
         for y_pos in range(self.width):
             for x_pos in range(self.height):
-                cell_pos = Position(x=x_pos, y=y_pos)
+                position = Position(x=x_pos, y=y_pos)
+                for _, direction in grid.get_neighbors(position):
+                    if self.rand.random() < self.wall_probability:
+                        grid.open_wall(position, direction)
 
-                if self.is_border(cell_pos):
-                    layout[cell_pos] = CellType.WALL
-                elif pacman_pos == cell_pos:
-                    layout[cell_pos] = CellType.PACMAN
-                elif food_pos == cell_pos:
-                    layout[cell_pos] = CellType.FOOD
-                elif self.rand.random() < self.wall_probability:
-                    layout[cell_pos] = CellType.WALL
-        return layout
+        return grid.to_layout()
