@@ -1,0 +1,49 @@
+[tool.black]
+target-version = ["py36", "py37", "py38"]
+line-length = 88
+
+[tool.poetry]
+name = "pacman_mapgen"
+version = "0.1.0"
+description = "Simple program that generates maps/layouts for the Pac-Man Project - Search using different strategies."
+authors = ["Josep Pon Farreny <jponfarreny@gmail.com>"]
+readme = "README.md"
+repository = "https://github.com/jponf/Pacman-Project-Search-MapGen"
+keywords = []
+
+[tool.poetry.scripts]
+pacman-mapgen = "pacman_mapgen.cli:main"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+[tool.poetry.group.dev]
+optional = true
+
+[tool.poetry.group.dev.dependencies]
+black = "*"
+isort = "*"
+
+# Linters
+flake8 = "*"
+mypy = "*"
+pylint = "*"                   # for pyreverse
+wemake-python-styleguide = "*"
+
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.test.dependencies]
+pytest = "*"
+pytest-cov = "*"
+pytest-randomly = "*" # random shuffle tests
+xdoctest = "*"
+
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
