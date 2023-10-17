@@ -1,22 +1,28 @@
 import argparse
-from enum import Enum
 
+from pacman_mapgen.constants import DEFAULT_SEED, DEFAULT_WALL_PROBABILTY
 from pacman_mapgen.core import LayoutGenerator
+from pacman_mapgen.kruskal import KruskalLayoutGenerator
 from pacman_mapgen.randdfs import RandomizedDfsLayoutGenerator
 from pacman_mapgen.randgen import RandomLayoutGenerator
-
+from pacman_mapgen.utils.type_utils import StrEnum
 
 ################
 # Main Program #
 ################
 
 
-class MazeMethod(str, Enum):
+class MazeMethod(StrEnum):
+    """Maze generation methods."""
+
+    KRUSKAL = "kruskal"
     RANDOM = "random"
     RANDOM_DFS = "dfs"
 
 
 class ProgramArgs(argparse.Namespace):
+    """Typed program arguments for argparse."""
+
     method: MazeMethod
     width: int
     height: int
@@ -25,10 +31,17 @@ class ProgramArgs(argparse.Namespace):
 
 
 def main():
+    """Program main routine."""
     args = _parse_args()
     generator: LayoutGenerator
 
-    if args.method is MazeMethod.RANDOM:
+    if args.method is MazeMethod.KRUSKAL:
+        generator = KruskalLayoutGenerator(
+            width=args.width,
+            height=args.height,
+            seed=args.seed,
+        )
+    elif args.method is MazeMethod.RANDOM:
         generator = RandomLayoutGenerator(
             width=args.width,
             height=args.height,
@@ -77,19 +90,19 @@ def _parse_args() -> ProgramArgs:
     parser.add_argument(
         "--seed",
         "-s",
-        default=1234,
+        default=DEFAULT_SEED,
         type=int,
         help="Random number generator seed.",
     )
 
     parser.add_argument(
         "--wall-probability",
-        default=0.3,
+        default=DEFAULT_WALL_PROBABILTY,
         type=float,
         help=f"Probability of cell becoming a wall (applies to: {MazeMethod.RANDOM})",
     )
 
-    return parser.parse_args(namespace=ProgramArgs)
+    return parser.parse_args(namespace=ProgramArgs())
 
 
 ###############################################################################

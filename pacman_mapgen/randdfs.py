@@ -5,7 +5,7 @@ from pacman_mapgen.grid import CellGrid
 class RandomizedDfsLayoutGenerator(LayoutGenerator):
     """Layout generator based on randomized DFS search.
 
-    Due to the layout constuction procedure the final result
+    Due to the layout construction procedure the final result
     will have `2 * width + 1` columns and `2 * height + 1` rows.
     """
 
@@ -14,6 +14,10 @@ class RandomizedDfsLayoutGenerator(LayoutGenerator):
 
         At every step we expand the last node in the fringe, adding the
         neighbors in random order every time.
+
+        Returns:
+            A layout with the corridors generated using a randomized
+            DFS exploration strategy.
         """
         grid = CellGrid(width=self.width, height=self.height)
         position = self.random_position()
