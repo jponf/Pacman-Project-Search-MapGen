@@ -41,6 +41,13 @@ The current version implements the following list of strategies:
    Uses a randomized DFS exploration to knock down walls
    between *cells*.
 
+ * Randomized Kruskal's algorithm
+
+   Randomized version of Kruskal's algorithm as shown here:
+   https://en.wikipedia.org/wiki/Maze_generation_algorithm
+
+
+
 ## Command Line Interface 💻
 
 To run the program on a terminal use the following command:
