@@ -1,0 +1,93 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.4.0
+    hooks:
+      - id: requirements-txt-fixer
+      - id: trailing-whitespace
+        exclude: |
+          (?x)^(
+            notebooks/
+          )
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+        exclude: |
+          (?x)^(
+            notebooks/
+          )
+      - id: check-yaml
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+  - repo: https://github.com/asottile/add-trailing-comma
+    rev: v2.4.0
+    hooks:
+      - id: add-trailing-comma
+  - repo: https://github.com/psf/black
+    rev: 23.1.0
+    hooks:
+      - id: black
+        exclude: |
+          (?x)^(
+            notebooks/
+          )
+  - repo: https://github.com/pycqa/isort
+    rev: "5.12.0"
+    hooks:
+      - id: isort
+        exclude: |
+          (?x)^(
+            notebooks/
+          )
+  # - repo: https://github.com/charliermarsh/ruff-pre-commit
+  #   # Ruff version.
+  #   rev: "v0.0.257"
+  #   hooks:
+  #     - id: ruff
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        additional_dependencies: [
+            'flake8-blind-except',
+            'flake8-docstrings',
+            'flake8-bugbear',
+            'flake8-comprehensions',
+            'flake8-docstrings',
+            'flake8-implicit-str-concat',
+            'pydocstyle>=5.0.0',
+            'wemake-python-styleguide',
+        ]
+        exclude: |
+          (?x)^(
+            docs/|
+            notebooks/
+          )
+  - repo: local
+    hooks:
+    - id: mypy
+      name: Running mypy
+      stages: [commit]
+      language: system
+      entry: poetry run mypy
+      args: [--install-types, --non-interactive]
+      types: [python]
+      exclude: |
+        (?x)^(
+          docs/|
+          notebooks/
+        )
+  # - id: pytest
+  #   name: pytest
+  #   stages: [commit]
+  #   language: system
+  #   entry: poetry run pytest
+  #   types: [python]
+
+  # - id: pytest-cov
+  #   name: pytest
+  #   stages: [push]
+  #   language: system
+  #   entry: poetry run pytest --cov --cov-fail-under=100
+  #   types: [python]
+  #   pass_filenames: false
