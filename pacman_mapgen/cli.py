@@ -3,6 +3,7 @@ import argparse
 from pacman_mapgen.constants import DEFAULT_SEED, DEFAULT_WALL_PROBABILTY
 from pacman_mapgen.core import LayoutGenerator
 from pacman_mapgen.kruskal import KruskalLayoutGenerator
+from pacman_mapgen.prim import PrimLayoutGenerator
 from pacman_mapgen.randdfs import RandomizedDfsLayoutGenerator
 from pacman_mapgen.randgen import RandomLayoutGenerator
 from pacman_mapgen.utils.type_utils import StrEnum
@@ -15,6 +16,7 @@ from pacman_mapgen.utils.type_utils import StrEnum
 class MazeMethod(StrEnum):
     """Maze generation methods."""
 
+    PRIM = "prim"
     KRUSKAL = "kruskal"
     RANDOM = "random"
     RANDOM_DFS = "dfs"
@@ -35,7 +37,13 @@ def main():
     args = _parse_args()
     generator: LayoutGenerator
 
-    if args.method is MazeMethod.KRUSKAL:
+    if args.method is MazeMethod.PRIM:
+        generator = PrimLayoutGenerator(
+            width=args.width,
+            height=args.height,
+            seed=args.seed,
+        )
+    elif args.method is MazeMethod.KRUSKAL:
         generator = KruskalLayoutGenerator(
             width=args.width,
             height=args.height,
