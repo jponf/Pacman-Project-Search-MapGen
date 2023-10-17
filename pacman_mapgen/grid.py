@@ -73,7 +73,8 @@ class CellGrid(object):
 
     Provides a convenient way to interact with cells using Position
     objects rather than directly accessing the underlying data
-    structure.
+    structure. Moreover, it has a convenient method to create a layout
+    that "looks" nice, from the grid cells values and walls.
     """
 
     def __init__(
