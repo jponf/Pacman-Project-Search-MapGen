@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Simple program that generates maps/layouts for the Pac-Man Project - Search using different strategies."
 authors = ["Josep Pon Farreny <jponfarreny@gmail.com>"]
 readme = "README.md"
+license = "MIT"
 repository = "https://github.com/jponf/Pacman-Project-Search-MapGen"
 keywords = []
 
