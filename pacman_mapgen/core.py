@@ -460,6 +460,7 @@ class LayoutGenerator(abc.ABC):
             A layout object with Pac-Man set accordingly.
         """
         grid = CellGrid(width=self.width, height=self.height)
+
         if problem_type is ProblemType.SEARCH:
             pacman_pos = self.random_position()
             food_pos = [self.random_position(forbidden=[pacman_pos])]
@@ -512,8 +513,8 @@ class LayoutGenerator(abc.ABC):
         """
         forbidden = forbidden or []
         rand_pos = Position(
-            x_coord=self.rand.randint(1, self.height - 2),
-            y_coord=self.rand.randint(1, self.width - 2),
+            x_coord=self.rand.randint(0, self.height - 1),
+            y_coord=self.rand.randint(0, self.width - 1),
         )
         not_ok = self.is_border(rand_pos) and no_border
         not_ok = not_ok or rand_pos in forbidden
