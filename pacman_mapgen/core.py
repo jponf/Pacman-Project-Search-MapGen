@@ -518,8 +518,8 @@ class LayoutGenerator(abc.ABC):
         """
         forbidden = forbidden or []
         rand_pos = Position(
-            x_coord=self.rand.randint(0, self.height - 1),
-            y_coord=self.rand.randint(0, self.width - 1),
+            x_coord=self.rand.randint(0, self.width - 1),
+            y_coord=self.rand.randint(0, self.height - 1),
         )
         not_ok = self.is_border(rand_pos) and no_border
         not_ok = not_ok or rand_pos in forbidden
