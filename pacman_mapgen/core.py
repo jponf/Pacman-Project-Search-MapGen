@@ -194,6 +194,26 @@ class Layout(object):
         """
         return (tuple(row) for row in self._layout)
 
+    def fill_with_food(self, max_food: int, rand: Random) -> None:
+        """Fills empty layout cells with food.
+
+        Args:
+            max_food: Maximum number of food cells to generate.
+            rand: Random engine to randomly select empty cells.
+        """
+        empty_cells = [
+            Position(x_coord=x_coord, y_coord=y_coord)
+            for y_coord, row in enumerate(self._layout)
+            for x_coord, cell in enumerate(row)
+            if cell is CellType.EMPTY
+        ]
+        rand.shuffle(empty_cells)
+
+        max_food = max_food if max_food > 0 else len(empty_cells)
+        while max_food > 0 and empty_cells:
+            self[empty_cells.pop()] = CellType.FOOD
+            max_food -= 1
+
     def print(
         self,
         stream: IO[str] = sys.stdout,
@@ -429,16 +449,15 @@ class LayoutGenerator(abc.ABC):
     def generate_layout(
         self,
         problem_type: ProblemType,
-        n_food: int,
+        max_food: int,
     ) -> Layout:
         """Generates a new layout and sets pacman and food.
 
         Args:
             problem_type: Pac-Man project problem type. Pac-Man and
                 foods' location will be set acording to the type.
-            n_food: Number of food cells when problem type is
-                `ProblemType.Food`. If the number exceeds the number
-                of cells all cells will be filled.
+            max_food: Maximum number of food cells when problem type
+                is `ProblemType.Food`.
 
         Returns:
             A layout object with Pac-Man set accordingly.
@@ -462,6 +481,8 @@ class LayoutGenerator(abc.ABC):
         layout = self._generate_plain_layout(grid)
 
         # Fill if type is food
+        if problem_type is ProblemType.FOOD:
+            layout.fill_with_food(max_food=max_food, rand=self.rand)
 
         return layout  # noqa: WPS331
 
