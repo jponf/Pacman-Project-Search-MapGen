@@ -46,6 +46,10 @@ The current version implements the following list of strategies:
    Randomized version of Kruskal's algorithm as shown here:
    https://en.wikipedia.org/wiki/Maze_generation_algorithm
 
+ * Randomized Prim's algorithm
+
+   Randomized version of Prim's algorithm as shown here:
+   https://en.wikipedia.org/wiki/Maze_generation_algorithm
 
 ## Problem types
 
