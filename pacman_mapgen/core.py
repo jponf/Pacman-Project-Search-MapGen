@@ -5,7 +5,9 @@ import sys
 from enum import Enum
 from random import Random
 from types import MappingProxyType
-from typing import IO, Iterator, List, Tuple
+from typing import IO, Iterator, List, Optional, Sequence, Tuple
+
+from pacman_mapgen.utils.type_utils import StrEnum
 
 
 class CellType(Enum):
@@ -192,21 +194,25 @@ class Layout(object):
         """
         return (tuple(row) for row in self._layout)
 
-    def is_border(self, position: Position) -> bool:
-        """Tests if the given position is a border or not.
+    def fill_with_food(self, max_food: int, rand: Random) -> None:
+        """Fills empty layout cells with food.
 
         Args:
-            position: Position to evaluate.
-
-        Returns:
-            True if `position` is a border cell otherwise False.
+            max_food: Maximum number of food cells to generate.
+            rand: Random engine to randomly select empty cells.
         """
-        return (
-            position.x_coord == 0
-            or position.x_coord == self.height - 1
-            or position.y_coord == 0
-            or position.y_coord == self.width - 1
-        )
+        empty_cells = [
+            Position(x_coord=x_coord, y_coord=y_coord)
+            for y_coord, row in enumerate(self._layout)
+            for x_coord, cell in enumerate(row)
+            if cell is CellType.EMPTY
+        ]
+        rand.shuffle(empty_cells)
+
+        max_food = max_food if max_food > 0 else len(empty_cells)
+        while max_food > 0 and empty_cells:
+            self[empty_cells.pop()] = CellType.FOOD
+            max_food -= 1
 
     def print(
         self,
@@ -223,6 +229,196 @@ class Layout(object):
 
             stream.write("\n")
         stream.flush()
+
+
+class Direction(Position, Enum):
+    """Direction from a position.
+
+    These constants can be added to a Position to obtain
+    the position resulting from taking that action from
+    that position.
+    """
+
+    # Implicit call to __init__(x_coord, y_coord)
+    LEFT = -1, 0
+    RIGHT = 1, 0
+    UP = 0, -1
+    DOWN = 0, 1
+
+    def reverse(self) -> Direction:
+        """Get reverse direction.
+
+        Returns:
+            Direction that reverses `self`.
+        """
+        return _REVERSE_DIRECTIONS[self]
+
+
+_REVERSE_DIRECTIONS = MappingProxyType(
+    {
+        Direction.LEFT: Direction.RIGHT,
+        Direction.RIGHT: Direction.LEFT,
+        Direction.UP: Direction.DOWN,
+        Direction.DOWN: Direction.UP,
+    },
+)
+
+
+class Cell(object):
+    """Represents a layout cell."""
+
+    def __init__(self, cell_type: CellType = CellType.EMPTY) -> None:
+        self._walls = {direction: True for direction in Direction}
+        self.type = cell_type
+
+    def open_wall(self, direction: Direction) -> None:
+        """Marks the wall open.
+
+        Args:
+            direction: Direction of the wall that must be marked as open.
+        """
+        self._walls[direction] = False
+
+    def is_open(self, direction: Direction) -> bool:
+        """Tests whether the wall is open or not.
+
+        Args:
+            direction: Direction of the wall that is being tested.
+
+        Returns:
+            True if the wall going `direction` is open, otherwise False.
+        """
+        return not self._walls[direction]
+
+
+class CellGrid(object):
+    """2D cell grid class.
+
+    Provides a convenient way to interact with cells using Position
+    objects rather than directly accessing the underlying data
+    structure. Moreover, it has a convenient method to create a layout
+    that "looks" nice, from the grid cells values and walls.
+    """
+
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        init_type: CellType = CellType.EMPTY,
+    ) -> None:
+        self.width = width
+        self.height = height
+        self._grid = [
+            [Cell(cell_type=init_type) for _ in range(self.width)]
+            for _ in range(self.height)
+        ]
+
+    def __getitem__(self, position: Position) -> Cell:
+        """Get cell.
+
+        Args:
+            position: Cell to query.
+
+        Returns:
+            Cell at `position`.
+        """
+        return self._grid[position.y_coord][position.x_coord]
+
+    def get_neighbors(
+        self,
+        position: Position,
+    ) -> List[Tuple[Position, Direction]]:
+        """Neighbor positions and direction pairs.
+
+        Args:
+            position: Position of the cell from which the neighbors
+                are going to be computed.
+
+        Returns:
+            Neighbors as a list of pairs (position, direction).
+        """
+        all_neighbors = [(position + direction, direction) for direction in Direction]
+        return [
+            neighbor
+            for neighbor in all_neighbors
+            if not self.is_out_of_bounds(neighbor[0])
+        ]
+
+    def is_out_of_bounds(self, position: Position) -> bool:
+        """Tests whether a position is out of bounds.
+
+        Args:
+            position: Position to evaluate.
+
+        Returns:
+            True if it is out of bounds, otherwise False.
+        """
+        return (
+            position.y_coord < 0
+            or position.y_coord >= self.height
+            or position.x_coord < 0
+            or position.x_coord >= self.width
+        )
+
+    def open_wall(
+        self,
+        position: Position,
+        direction: Direction,
+    ) -> None:
+        """Opens the wall that connects position with its neighbor.
+
+        Args:
+            position: Cell to open.
+            direction: Direction of the wall from `position` to open.
+
+        Raises:
+            IndexError: If `direction` from `position` goes out of bounds.
+        """
+        neighbor = position + direction
+        if self.is_out_of_bounds(position) or self.is_out_of_bounds(neighbor):
+            raise IndexError(
+                "Cannot open wall as it goes out of bounds",
+            )
+
+        self[position].open_wall(direction)
+        self[neighbor].open_wall(direction.reverse())
+
+    def to_layout(self) -> Layout:
+        """Creates a layout from the grid.
+
+        Returns:
+            A layout object constructed using information from
+            the grid cells.
+        """
+        layout = Layout(
+            width=2 * self.width + 1,
+            height=2 * self.height + 1,
+            init_type=CellType.WALL,
+        )
+        for y_pos, row in enumerate(self._grid):
+            for x_pos, cell in enumerate(row):
+                layout_p = Position(x_coord=2 * x_pos + 1, y_coord=2 * y_pos + 1)
+
+                layout[layout_p] = cell.type
+
+                if cell.is_open(Direction.LEFT):
+                    layout[layout_p.left] = CellType.EMPTY
+                if cell.is_open(Direction.RIGHT):
+                    layout[layout_p.right] = CellType.EMPTY
+                if cell.is_open(Direction.UP):
+                    layout[layout_p.up] = CellType.EMPTY
+                if cell.is_open(Direction.DOWN):
+                    layout[layout_p.down] = CellType.EMPTY
+
+        return layout
+
+
+class ProblemType(StrEnum):
+    """Pac-Man project problem types."""
+
+    FOOD = "food"
+    SEARCH = "search"
+    CORNERS = "corners"
 
 
 class LayoutGenerator(abc.ABC):
@@ -250,15 +446,64 @@ class LayoutGenerator(abc.ABC):
         if self.height <= 2:
             raise ValueError("Number of columns must be greater than 2")
 
-    @abc.abstractmethod
-    def generate_layout(self) -> Layout:
-        """Generates a new Map.
+    def generate_layout(
+        self,
+        problem_type: ProblemType,
+        max_food: int,
+    ) -> Layout:
+        """Generates a new layout and sets pacman and food.
+
+        Args:
+            problem_type: Pac-Man project problem type. Pac-Man and
+                foods' location will be set acording to the type.
+            max_food: Maximum number of food cells when problem type
+                is `ProblemType.Food`.
 
         Returns:
-            A list of list (num rows x num columns) with the generated map.
-        """  # noqa: DAR202
+            A layout object with Pac-Man set accordingly.
+        """
+        grid = CellGrid(width=self.width, height=self.height)
 
-    def random_position(self, no_border: bool = True) -> Position:
+        if problem_type is ProblemType.SEARCH:
+            pacman_pos = self.random_position()
+            food_pos = [self.random_position(forbidden=[pacman_pos])]
+        elif problem_type is ProblemType.CORNERS:
+            food_pos = self.get_corners()
+            pacman_pos = self.random_position(forbidden=food_pos)
+        elif problem_type is ProblemType.FOOD:
+            pacman_pos = self.random_position()
+            food_pos = []
+
+        grid[pacman_pos].type = CellType.PACMAN
+        for pos in food_pos:
+            grid[pos].type = CellType.FOOD
+
+        layout = self._generate_plain_layout(grid)
+
+        # Fill if type is food
+        if problem_type is ProblemType.FOOD:
+            layout.fill_with_food(max_food=max_food, rand=self.rand)
+
+        return layout  # noqa: WPS331
+
+    def get_corners(self) -> List[Position]:
+        """Get grid corner positions.
+
+        Returns:
+            List of corner positions
+        """
+        return [
+            Position(x_coord=0, y_coord=0),
+            Position(x_coord=0, y_coord=self.height - 1),
+            Position(x_coord=self.width - 1, y_coord=0),
+            Position(x_coord=self.width - 1, y_coord=self.height - 1),
+        ]
+
+    def random_position(
+        self,
+        no_border: bool = False,
+        forbidden: Optional[Sequence[Position]] = None,
+    ) -> Position:
         """Generates a random position.
 
         The generated position will never fall in the first nor the last
@@ -266,24 +511,30 @@ class LayoutGenerator(abc.ABC):
 
         Args:
             no_border: Avoid border positions.
+            forbidden: Forbidden positions.
 
         Returns:
             A tuple containing the new position (x_pos, y_pos).
         """
+        forbidden = forbidden or []
         rand_pos = Position(
-            x_coord=self.rand.randint(1, self.height - 2),
-            y_coord=self.rand.randint(1, self.width - 2),
+            x_coord=self.rand.randint(0, self.height - 1),
+            y_coord=self.rand.randint(0, self.width - 1),
         )
+        not_ok = self.is_border(rand_pos) and no_border
+        not_ok = not_ok or rand_pos in forbidden
 
-        while self.is_border(rand_pos) and no_border:
+        while not_ok:
             rand_pos = Position(
                 self.rand.randint(1, self.height - 2),
                 self.rand.randint(1, self.width - 2),
             )
+            not_ok = self.is_border(rand_pos) and no_border
+            not_ok = not_ok or rand_pos in forbidden
 
         return rand_pos
 
-    def random_positions(self, count: int, no_border: bool = True) -> List[Position]:
+    def random_positions(self, count: int, no_border: bool = False) -> List[Position]:
         """Generates `count` distinct random positions.
 
         Args:
@@ -332,3 +583,14 @@ class LayoutGenerator(abc.ABC):
             or position.y_coord < 0
             or position.y_coord >= self.width
         )
+
+    @abc.abstractmethod
+    def _generate_plain_layout(self, grid: CellGrid) -> Layout:
+        """Generates a new layout without setting the cell values.
+
+        Args:
+            grid: A previously initialized grid.
+
+        Returns:
+            A list of list (num rows x num columns) with the generated map.
+        """  # noqa: DAR202

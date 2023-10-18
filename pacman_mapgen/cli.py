@@ -1,7 +1,7 @@
 import argparse
 
 from pacman_mapgen.constants import DEFAULT_SEED, DEFAULT_WALL_PROBABILTY
-from pacman_mapgen.core import LayoutGenerator
+from pacman_mapgen.core import LayoutGenerator, ProblemType
 from pacman_mapgen.kruskal import KruskalLayoutGenerator
 from pacman_mapgen.prim import PrimLayoutGenerator
 from pacman_mapgen.randdfs import RandomizedDfsLayoutGenerator
@@ -26,9 +26,11 @@ class ProgramArgs(argparse.Namespace):
     """Typed program arguments for argparse."""
 
     method: MazeMethod
+    problem_type: ProblemType
     width: int
     height: int
     seed: int
+    max_food: int
     wall_probability: float
 
 
@@ -63,7 +65,10 @@ def main():
             seed=args.seed,
         )
 
-    layout = generator.generate_layout()
+    layout = generator.generate_layout(
+        problem_type=args.problem_type,
+        max_food=args.max_food,
+    )
     layout.print()
 
 
@@ -79,6 +84,15 @@ def _parse_args() -> ProgramArgs:
         type=MazeMethod,
         choices=[method.value for method in MazeMethod],
         help="Maze generation method.",
+    )
+
+    parser.add_argument(
+        "--problem-type",
+        "-p",
+        type=ProblemType,
+        default=ProblemType.SEARCH,
+        choices=[p_type.value for p_type in ProblemType],
+        help="Generated problem type.",
     )
 
     parser.add_argument(
@@ -104,6 +118,13 @@ def _parse_args() -> ProgramArgs:
     )
 
     parser.add_argument(
+        "--max-food",
+        default=10,
+        type=arg_type_positive_int,
+        help=f"Number of food pellets for problem-type={ProblemType.FOOD} problems",
+    )
+
+    parser.add_argument(
         "--wall-probability",
         default=DEFAULT_WALL_PROBABILTY,
         type=float,
@@ -111,6 +132,29 @@ def _parse_args() -> ProgramArgs:
     )
 
     return parser.parse_args(namespace=ProgramArgs())
+
+
+def arg_type_positive_int(raw_value: str) -> int:
+    """Function that acts as an argparse type for positive integers.
+
+    Args:
+        raw_value: Raw value provided by argparse.
+
+    Returns:
+        The value of `raw_value` as an int.
+
+    Raises:
+        ArgumentTypeError: If the value is not a positive integer.
+    """
+    try:
+        ivalue = int(raw_value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"value '{raw_value}' is not an integer")
+    if ivalue <= 0:
+        raise argparse.ArgumentTypeError(
+            f"{raw_value} is an invalid positive int value",
+        )
+    return ivalue
 
 
 ###############################################################################
