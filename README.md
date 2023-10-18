@@ -47,6 +47,17 @@ The current version implements the following list of strategies:
    https://en.wikipedia.org/wiki/Maze_generation_algorithm
 
 
+## Problem types
+
+The generator supports generating maps for the 3 types of
+problems presented in
+[Pac-Man Project - Search][pacman-project-search]: search,
+corners and food.
+
+The type of problem can be selected via the command line interface
+via the flag `--problem-type [search | corners | food]`. Moreover,
+the `food` problem type uses an additional argument `--max-food` to
+determine the maximum number of food pellets to place in the layout.
 
 ## Command Line Interface 💻
 
