@@ -1,7 +1,7 @@
 import argparse
 
 from pacman_mapgen.constants import DEFAULT_SEED, DEFAULT_WALL_PROBABILTY
-from pacman_mapgen.core import LayoutGenerator
+from pacman_mapgen.core import LayoutGenerator, ProblemType
 from pacman_mapgen.kruskal import KruskalLayoutGenerator
 from pacman_mapgen.prim import PrimLayoutGenerator
 from pacman_mapgen.randdfs import RandomizedDfsLayoutGenerator
@@ -26,6 +26,7 @@ class ProgramArgs(argparse.Namespace):
     """Typed program arguments for argparse."""
 
     method: MazeMethod
+    problem_type: ProblemType
     width: int
     height: int
     seed: int
@@ -63,7 +64,10 @@ def main():
             seed=args.seed,
         )
 
-    layout = generator.generate_layout()
+    layout = generator.generate_layout(
+        problem_type=args.problem_type,
+        n_food=1,
+    )
     layout.print()
 
 
@@ -79,6 +83,15 @@ def _parse_args() -> ProgramArgs:
         type=MazeMethod,
         choices=[method.value for method in MazeMethod],
         help="Maze generation method.",
+    )
+
+    parser.add_argument(
+        "--problem-type",
+        "-p",
+        type=ProblemType,
+        default=ProblemType.SEARCH,
+        choices=[p_type.value for p_type in ProblemType],
+        help="Generated problem type.",
     )
 
     parser.add_argument(
