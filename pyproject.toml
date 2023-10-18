@@ -2,6 +2,9 @@
 target-version = ["py36", "py37", "py38"]
 line-length = 88
 
+[tool.isort]
+profile = "black"
+
 [tool.poetry]
 name = "pacman_mapgen"
 version = "0.1.0"

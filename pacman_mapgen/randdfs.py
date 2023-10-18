@@ -1,4 +1,4 @@
-from pacman_mapgen.core import CellGrid, CellType, Layout, LayoutGenerator
+from pacman_mapgen.core import CellGrid, Layout, LayoutGenerator
 
 
 class RandomizedDfsLayoutGenerator(LayoutGenerator):
@@ -13,6 +13,9 @@ class RandomizedDfsLayoutGenerator(LayoutGenerator):
 
         At every step we expand the last node in the fringe, adding the
         neighbors in random order every time.
+
+        Args:
+            grid: Grid to generate the layout with.
 
         Returns:
             A layout with the corridors generated using a randomized

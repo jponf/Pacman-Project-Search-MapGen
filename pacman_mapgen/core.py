@@ -510,12 +510,13 @@ class LayoutGenerator(abc.ABC):
         Returns:
             A tuple containing the new position (x_pos, y_pos).
         """
+        forbidden = forbidden or []
         rand_pos = Position(
             x_coord=self.rand.randint(1, self.height - 2),
             y_coord=self.rand.randint(1, self.width - 2),
         )
         not_ok = self.is_border(rand_pos) and no_border
-        not_ok = not_ok or (forbidden and rand_pos in forbidden)
+        not_ok = not_ok or rand_pos in forbidden
 
         while not_ok:
             rand_pos = Position(
@@ -523,7 +524,7 @@ class LayoutGenerator(abc.ABC):
                 self.rand.randint(1, self.width - 2),
             )
             not_ok = self.is_border(rand_pos) and no_border
-            not_ok = not_ok or (forbidden and rand_pos in forbidden)
+            not_ok = not_ok or rand_pos in forbidden
 
         return rand_pos
 

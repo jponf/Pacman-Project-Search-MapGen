@@ -1,5 +1,4 @@
-from pacman_mapgen.core import (CellGrid, CellType, Layout, LayoutGenerator,
-                                Position)
+from pacman_mapgen.core import CellGrid, CellType, Layout, LayoutGenerator, Position
 
 
 class KruskalLayoutGenerator(LayoutGenerator):
@@ -9,8 +8,11 @@ class KruskalLayoutGenerator(LayoutGenerator):
     will have `2 * width + 1` columns and `2 * height + 1` rows.
     """
 
-    def _generate_plain_layout(self) -> Layout:  # noqa: WPS210
+    def _generate_plain_layout(self, grid: CellGrid) -> Layout:  # noqa: WPS210
         """Generate a layout using Kruskal's algorithm.
+
+        Args:
+            grid: Grid to generate the layout with
 
         Returns:
             A layout created using Kruskal's algorithm.
