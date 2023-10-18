@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import itertools
 import sys
 from enum import Enum
 from random import Random
@@ -279,6 +280,14 @@ class Cell(object):
         """
         self._walls[direction] = False
 
+    def count_open(self) -> int:
+        """Count number of open walls.
+
+        Returns:
+            Number of open walls.
+        """
+        return sum(self.is_open(direction) for direction in Direction)
+
     def is_open(self, direction: Direction) -> bool:
         """Tests whether the wall is open or not.
 
@@ -440,6 +449,7 @@ class LayoutGenerator(abc.ABC):
         self.height = height
         self.seed = seed
         self.rand = Random(self.seed)
+        self._cycle_probability = 0.1
 
         if self.width <= 2:
             raise ValueError("Number of rows must be greater than 2")
@@ -478,7 +488,9 @@ class LayoutGenerator(abc.ABC):
         for pos in food_pos:
             grid[pos].type = CellType.FOOD
 
-        layout = self._generate_plain_layout(grid)
+        self._create_paths(grid)
+        self._create_cycles(grid)
+        layout = grid.to_layout()
 
         # Fill if type is food
         if problem_type is ProblemType.FOOD:
@@ -518,8 +530,8 @@ class LayoutGenerator(abc.ABC):
         """
         forbidden = forbidden or []
         rand_pos = Position(
-            x_coord=self.rand.randint(0, self.height - 1),
-            y_coord=self.rand.randint(0, self.width - 1),
+            x_coord=self.rand.randint(0, self.width - 1),
+            y_coord=self.rand.randint(0, self.height - 1),
         )
         not_ok = self.is_border(rand_pos) and no_border
         not_ok = not_ok or rand_pos in forbidden
@@ -585,12 +597,47 @@ class LayoutGenerator(abc.ABC):
         )
 
     @abc.abstractmethod
-    def _generate_plain_layout(self, grid: CellGrid) -> Layout:
+    def _create_paths(self, grid: CellGrid) -> None:
         """Generates a new layout without setting the cell values.
 
         Args:
             grid: A previously initialized grid.
-
-        Returns:
-            A list of list (num rows x num columns) with the generated map.
         """  # noqa: DAR202
+
+    def _create_cycles(self, grid: CellGrid) -> None:
+        """Open additional walls to create cycles.
+
+        Given a spanning-tree like grid, open some additional
+        walls in order to create cycles.
+
+        Args:
+            grid: A previously generated grid with a spanning-tree like
+                structure
+        """
+        positions = [
+            Position(x_coord=x_coord, y_coord=y_coord)
+            for x_coord, y_coord in itertools.product(
+                range(self.width),
+                range(self.height),
+            )
+        ]
+        self.rand.shuffle(positions)
+        positions = positions[: int(self._cycle_probability * len(positions))]
+
+        for pos in positions:
+            cell = grid[pos]
+
+            # Idea: to keep the "nice" looking structure, consider only
+            # neighbors whose perpendicular neighbors are closed from the same
+            # direction. That is if we consider opening the path to the right,
+            # the neighbor (right-up) or (right-down) should have the left wall
+            # closed.
+            closed = [
+                (neighbor, direction)
+                for neighbor, direction in grid.get_neighbors(pos)
+                if not cell.is_open(direction) and grid[neighbor].count_open() < 3
+            ]
+            if closed:
+                self.rand.shuffle(closed)
+                _, direction = closed[0]
+                grid.open_wall(pos, direction)

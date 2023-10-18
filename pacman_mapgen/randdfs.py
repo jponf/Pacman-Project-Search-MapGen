@@ -1,4 +1,4 @@
-from pacman_mapgen.core import CellGrid, Layout, LayoutGenerator
+from pacman_mapgen.core import CellGrid, LayoutGenerator
 
 
 class RandomizedDfsLayoutGenerator(LayoutGenerator):
@@ -8,24 +8,17 @@ class RandomizedDfsLayoutGenerator(LayoutGenerator):
     will have `2 * width + 1` columns and `2 * height + 1` rows.
     """
 
-    def _generate_plain_layout(self, grid: CellGrid) -> Layout:
-        """Generate a layout traversing the map using a randomized DFS.
+    def _create_paths(self, grid: CellGrid) -> None:
+        """Opens path traversing the grid using a randomized DFS.
 
         At every step we expand the last node in the fringe, adding the
         neighbors in random order every time.
 
         Args:
             grid: Grid to generate the layout with.
-
-        Returns:
-            A layout with the corridors generated using a randomized
-            DFS exploration strategy.
         """
         position = self.random_position()
         neighbors = grid.get_neighbors(position)
-
-        if not neighbors:  # Nothing to explore
-            return grid.to_layout()
 
         fringe = [(position, neighbors)]
         visited = {position}
@@ -46,5 +39,3 @@ class RandomizedDfsLayoutGenerator(LayoutGenerator):
                 if next_neighbors:
                     self.rand.shuffle(next_neighbors)
                     fringe.append((neighbor, next_neighbors))
-
-        return grid.to_layout()

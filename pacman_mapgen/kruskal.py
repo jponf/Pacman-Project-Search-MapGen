@@ -1,4 +1,4 @@
-from pacman_mapgen.core import CellGrid, Layout, LayoutGenerator, Position
+from pacman_mapgen.core import CellGrid, LayoutGenerator, Position
 
 
 class KruskalLayoutGenerator(LayoutGenerator):
@@ -8,14 +8,11 @@ class KruskalLayoutGenerator(LayoutGenerator):
     will have `2 * width + 1` columns and `2 * height + 1` rows.
     """
 
-    def _generate_plain_layout(self, grid: CellGrid) -> Layout:  # noqa: WPS210
-        """Generate a layout using Kruskal's algorithm.
+    def _create_paths(self, grid: CellGrid) -> None:  # noqa: WPS210
+        """Opens paths using Kruskal's algorithm.
 
         Args:
             grid: Grid to generate the layout with
-
-        Returns:
-            A layout created using Kruskal's algorithm.
         """
         positions = [
             Position(x_coord=x_pos, y_coord=y_pos)
@@ -53,4 +50,3 @@ class KruskalLayoutGenerator(LayoutGenerator):
                     cell_set[pos] = new_set_idx
 
         assert not set_cells[1], "All cells must belong to set 0"  # noqa: S101
-        return grid.to_layout()
