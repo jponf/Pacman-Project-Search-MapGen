@@ -194,22 +194,6 @@ class Layout(object):
         """
         return (tuple(row) for row in self._layout)
 
-    def is_border(self, position: Position) -> bool:
-        """Tests if the given position is a border or not.
-
-        Args:
-            position: Position to evaluate.
-
-        Returns:
-            True if `position` is a border cell otherwise False.
-        """
-        return (
-            position.x_coord == 0
-            or position.x_coord == self.height - 1
-            or position.y_coord == 0
-            or position.y_coord == self.width - 1
-        )
-
     def print(
         self,
         stream: IO[str] = sys.stdout,
