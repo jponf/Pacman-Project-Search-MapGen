@@ -1,4 +1,4 @@
-from pacman_mapgen.core import CellGrid, CellType, Layout, LayoutGenerator
+from pacman_mapgen.core import CellGrid, Layout, LayoutGenerator
 
 
 class PrimLayoutGenerator(LayoutGenerator):
@@ -8,13 +8,15 @@ class PrimLayoutGenerator(LayoutGenerator):
     will have `2 * width + 1` columns and `2 * height + 1` rows.
     """
 
-    def _generate_plain_layout(self) -> Layout:  # noqa: WPS210
-        """Generate a layout using Kruskal's algorithm.
+    def _generate_plain_layout(self, grid: CellGrid) -> Layout:  # noqa: WPS210
+        """Generate a layout using Prims's algorithm.
+
+        Args:
+            grid: Grid to generate the layout with
 
         Returns:
-            A layout created using Kruskal's algorithm.
+            A layout created using Prims's algorithm.
         """
-        grid = CellGrid(width=self.width, height=self.height)
         cur_pos = self.random_position(no_border=False)
         pending = grid.get_neighbors(cur_pos)
         visited = {cur_pos}
@@ -31,10 +33,5 @@ class PrimLayoutGenerator(LayoutGenerator):
                 )
                 self.rand.shuffle(pending)
                 visited.add(cur_pos)
-
-        # Place Pac-Man and food
-        pacman_pos, food_pos = self.random_positions(count=2, no_border=False)
-        grid[pacman_pos].type = CellType.PACMAN
-        grid[food_pos].type = CellType.FOOD
 
         return grid.to_layout()

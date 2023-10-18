@@ -1,4 +1,4 @@
-from pacman_mapgen.core import CellGrid, CellType, Layout, LayoutGenerator, Position
+from pacman_mapgen.core import CellGrid, Layout, LayoutGenerator, Position
 
 
 class KruskalLayoutGenerator(LayoutGenerator):
@@ -17,7 +17,6 @@ class KruskalLayoutGenerator(LayoutGenerator):
         Returns:
             A layout created using Kruskal's algorithm.
         """
-        grid = CellGrid(width=self.width, height=self.height)
         positions = [
             Position(x_coord=x_pos, y_coord=y_pos)
             for x_pos in range(self.width)
@@ -52,11 +51,6 @@ class KruskalLayoutGenerator(LayoutGenerator):
                 set_cells[n_set_idx] = set() if is_p_set else new_set
                 for pos in new_set:
                     cell_set[pos] = new_set_idx
-
-        # Place Pac-Man and food
-        pacman_pos, food_pos = self.random_positions(count=2, no_border=False)
-        grid[pacman_pos].type = CellType.PACMAN
-        grid[food_pos].type = CellType.FOOD
 
         assert not set_cells[1], "All cells must belong to set 0"  # noqa: S101
         return grid.to_layout()
