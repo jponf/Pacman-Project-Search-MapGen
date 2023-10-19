@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import abc
-import itertools
 import sys
 from enum import Enum
 from random import Random
@@ -254,6 +253,16 @@ class Direction(Position, Enum):
         """
         return _REVERSE_DIRECTIONS[self]
 
+    def perpendicular(self) -> List[Direction]:
+        """Directions perpendicular to self.
+
+        Returns:
+            A list with the directions perpendicular to `self`.
+        """
+        if self is Direction.LEFT or self is Direction.RIGHT:
+            return [Direction.UP, Direction.DOWN]
+        return [Direction.LEFT, Direction.RIGHT]
+
 
 _REVERSE_DIRECTIONS = MappingProxyType(
     {
@@ -449,7 +458,7 @@ class LayoutGenerator(abc.ABC):
         self.height = height
         self.seed = seed
         self.rand = Random(self.seed)
-        self._cycle_probability = 0.1
+        self._cycle_probability = 0.3
 
         if self.width <= 2:
             raise ValueError("Number of rows must be greater than 2")
@@ -465,7 +474,7 @@ class LayoutGenerator(abc.ABC):
 
         Args:
             problem_type: Pac-Man project problem type. Pac-Man and
-                foods' location will be set acording to the type.
+                foods' location will be set according to the type.
             max_food: Maximum number of food cells when problem type
                 is `ProblemType.Food`.
 
@@ -608,36 +617,74 @@ class LayoutGenerator(abc.ABC):
         """Open additional walls to create cycles.
 
         Given a spanning-tree like grid, open some additional
-        walls in order to create cycles.
+        walls in order to create cycles. The operation opens walls with
+        a certain probability while avoiding situations in which 4
+        adjacent nodes are all open with one another.
+
+        For example, in the following configuration we want to avoid
+        opening the wall between 3 and 4.
+
+            1 -- 2
+            |    |
+            3    4
 
         Args:
             grid: A previously generated grid with a spanning-tree like
                 structure
         """
-        positions = [
+        positions = (
             Position(x_coord=x_coord, y_coord=y_coord)
-            for x_coord, y_coord in itertools.product(
-                range(self.width),
-                range(self.height),
-            )
-        ]
-        self.rand.shuffle(positions)
-        positions = positions[: int(self._cycle_probability * len(positions))]
+            for x_coord in range(self.width)
+            for y_coord in range(self.height)
+            if self.rand.random() < self._cycle_probability
+        )
 
         for pos in positions:
             cell = grid[pos]
 
-            # Idea: to keep the "nice" looking structure, consider only
-            # neighbors whose perpendicular neighbors are closed from the same
-            # direction. That is if we consider opening the path to the right,
-            # the neighbor (right-up) or (right-down) should have the left wall
-            # closed.
             closed = [
                 (neighbor, direction)
                 for neighbor, direction in grid.get_neighbors(pos)
-                if not cell.is_open(direction) and grid[neighbor].count_open() < 3
+                if not cell.is_open(direction)
+                and _create_cycle_ok(grid, pos, neighbor, direction)
             ]
             if closed:
                 self.rand.shuffle(closed)
                 _, direction = closed[0]
                 grid.open_wall(pos, direction)
+
+
+def _create_cycle_ok(
+    grid: CellGrid,
+    position: Position,
+    neighbor: Position,
+    direction: Direction,
+) -> bool:
+    # Example, given
+    #
+    # 1 -- 2
+    # |    |
+    # 3    4
+    #
+    # When trying to open the path from 3 to 4 the following code
+    # tests:
+    #
+    #  * 1 is a valid position
+    #  * if 3 and 1 are connected
+    #  * if 4 and 2 are connected
+    #  * if 1 and 2 are connected
+    #
+    #  When this happens opening 3 and 4 would create to many
+    #  openings, which is undesirable as in Pac-Man these do not
+    #  look "nice".
+    for p_direction in direction.perpendicular():
+        p_position = position + p_direction  # perpendicular to position
+
+        if (  # noqa: WPS337
+            not grid.is_out_of_bounds(p_position)
+            and grid[position].is_open(p_direction)
+            and grid[neighbor].is_open(p_direction)
+            and grid[p_position].is_open(direction)
+        ):
+            return False
+    return True
