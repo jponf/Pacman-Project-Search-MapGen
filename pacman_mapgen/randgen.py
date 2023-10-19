@@ -11,12 +11,14 @@ class RandomLayoutGenerator(LayoutGenerator):
         width: int,
         height: int,
         seed: int,
+        cycle_probability: float,
         wall_probability: float,
     ) -> None:
         super().__init__(
             width=width,
             height=height,
             seed=seed,
+            cycle_probability=cycle_probability,
         )
         self.wall_probability = wall_probability
         if self.wall_probability <= 0 or self.wall_probability > 1.0:  # noqa: WPS459

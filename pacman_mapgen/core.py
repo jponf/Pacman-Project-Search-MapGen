@@ -446,6 +446,9 @@ class LayoutGenerator(abc.ABC):
         num_rows: Number of rows.
         num_cols: Number of columns.
         seed: To initialize the random number generator.
+        cycle_probability: Probability to connect additional nodes
+            after the spanning-tree generation to create cycles in
+            the layout.
     """
 
     def __init__(
@@ -453,17 +456,20 @@ class LayoutGenerator(abc.ABC):
         width: int,
         height: int,
         seed: int,
+        cycle_probability: float,
     ) -> None:
         self.width = width
         self.height = height
         self.seed = seed
         self.rand = Random(self.seed)
-        self._cycle_probability = 0.3
+        self.cycle_probability = cycle_probability
 
         if self.width <= 2:
             raise ValueError("Number of rows must be greater than 2")
         if self.height <= 2:
             raise ValueError("Number of columns must be greater than 2")
+        if self.cycle_probability < 0 or self.cycle_probability > 1:
+            raise ValueError("Cycle probability must be between 0 and 1")
 
     def generate_layout(
         self,
@@ -636,7 +642,7 @@ class LayoutGenerator(abc.ABC):
             Position(x_coord=x_coord, y_coord=y_coord)
             for x_coord in range(self.width)
             for y_coord in range(self.height)
-            if self.rand.random() < self._cycle_probability
+            if self.rand.random() < self.cycle_probability
         )
 
         for pos in positions:
