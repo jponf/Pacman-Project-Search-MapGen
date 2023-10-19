@@ -1,4 +1,4 @@
-from pacman_mapgen.core import CellGrid, Layout, LayoutGenerator
+from pacman_mapgen.core import CellGrid, LayoutGenerator
 
 
 class PrimLayoutGenerator(LayoutGenerator):
@@ -8,14 +8,11 @@ class PrimLayoutGenerator(LayoutGenerator):
     will have `2 * width + 1` columns and `2 * height + 1` rows.
     """
 
-    def _generate_plain_layout(self, grid: CellGrid) -> Layout:  # noqa: WPS210
-        """Generate a layout using Prims's algorithm.
+    def _create_paths(self, grid: CellGrid) -> None:  # noqa: WPS210
+        """Opens paths using Prims's algorithm.
 
         Args:
             grid: Grid to generate the layout with
-
-        Returns:
-            A layout created using Prims's algorithm.
         """
         cur_pos = self.random_position(no_border=False)
         pending = grid.get_neighbors(cur_pos)
@@ -33,5 +30,3 @@ class PrimLayoutGenerator(LayoutGenerator):
                 )
                 self.rand.shuffle(pending)
                 visited.add(cur_pos)
-
-        return grid.to_layout()

@@ -1,6 +1,11 @@
 import argparse
+import sys
 
-from pacman_mapgen.constants import DEFAULT_SEED, DEFAULT_WALL_PROBABILTY
+from pacman_mapgen.constants import (
+    DEFAULT_CYCLE_PROBABILITY,
+    DEFAULT_SEED,
+    DEFAULT_WALL_PROBABILTY,
+)
 from pacman_mapgen.core import LayoutGenerator, ProblemType
 from pacman_mapgen.kruskal import KruskalLayoutGenerator
 from pacman_mapgen.prim import PrimLayoutGenerator
@@ -13,7 +18,7 @@ from pacman_mapgen.utils.type_utils import StrEnum
 ################
 
 
-class MazeMethod(StrEnum):
+class LayoutMethod(StrEnum):
     """Maze generation methods."""
 
     PRIM = "prim"
@@ -25,12 +30,13 @@ class MazeMethod(StrEnum):
 class ProgramArgs(argparse.Namespace):
     """Typed program arguments for argparse."""
 
-    method: MazeMethod
+    method: LayoutMethod
     problem_type: ProblemType
     width: int
     height: int
     seed: int
     max_food: int
+    cycle_probability: float
     wall_probability: float
 
 
@@ -39,37 +45,56 @@ def main():
     args = _parse_args()
     generator: LayoutGenerator
 
-    if args.method is MazeMethod.PRIM:
-        generator = PrimLayoutGenerator(
-            width=args.width,
-            height=args.height,
-            seed=args.seed,
-        )
-    elif args.method is MazeMethod.KRUSKAL:
-        generator = KruskalLayoutGenerator(
-            width=args.width,
-            height=args.height,
-            seed=args.seed,
-        )
-    elif args.method is MazeMethod.RANDOM:
-        generator = RandomLayoutGenerator(
-            width=args.width,
-            height=args.height,
-            seed=args.seed,
-            wall_probability=args.wall_probability,
-        )
-    elif args.method is MazeMethod.RANDOM_DFS:
-        generator = RandomizedDfsLayoutGenerator(
-            width=args.width,
-            height=args.height,
-            seed=args.seed,
-        )
+    try:
+        generator = _create_layout_generator(args)
+    except ValueError as err:
+        print(f"Error: {err}.")
+        sys.exit(1)
 
     layout = generator.generate_layout(
         problem_type=args.problem_type,
         max_food=args.max_food,
     )
     layout.print()
+
+
+def _create_layout_generator(args: ProgramArgs) -> LayoutGenerator:
+    if args.method is LayoutMethod.PRIM:
+        return PrimLayoutGenerator(
+            width=args.width,
+            height=args.height,
+            seed=args.seed,
+            cycle_probability=args.cycle_probability,
+        )
+    if args.method is LayoutMethod.KRUSKAL:
+        return KruskalLayoutGenerator(
+            width=args.width,
+            height=args.height,
+            seed=args.seed,
+            cycle_probability=args.cycle_probability,
+        )
+    if args.method is LayoutMethod.RANDOM:
+        return RandomLayoutGenerator(
+            width=args.width,
+            height=args.height,
+            seed=args.seed,
+            cycle_probability=args.cycle_probability,
+            wall_probability=args.wall_probability,
+        )
+    if args.method is LayoutMethod.RANDOM_DFS:
+        return RandomizedDfsLayoutGenerator(
+            width=args.width,
+            height=args.height,
+            seed=args.seed,
+            cycle_probability=args.cycle_probability,
+        )
+
+    print(
+        f"Unknown layout generator method {args.method}, expected:"
+        f" {', '.join(LayoutMethod)}",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 
 def _parse_args() -> ProgramArgs:
@@ -81,8 +106,8 @@ def _parse_args() -> ProgramArgs:
     parser.add_argument(
         "--method",
         action="store",
-        type=MazeMethod,
-        choices=[method.value for method in MazeMethod],
+        type=LayoutMethod,
+        choices=[method.value for method in LayoutMethod],
         help="Maze generation method.",
     )
 
@@ -125,10 +150,18 @@ def _parse_args() -> ProgramArgs:
     )
 
     parser.add_argument(
+        "--cycle-probability",
+        default=DEFAULT_CYCLE_PROBABILITY,
+        type=float,
+        help="Probability to connect additional nodes after the "
+        "spanning-tree generation to create cycles in the layout.",
+    )
+
+    parser.add_argument(
         "--wall-probability",
         default=DEFAULT_WALL_PROBABILTY,
         type=float,
-        help=f"Probability of cell becoming a wall (applies to: {MazeMethod.RANDOM})",
+        help=f"Probability of cell becoming a wall (applies to: {LayoutMethod.RANDOM})",
     )
 
     return parser.parse_args(namespace=ProgramArgs())

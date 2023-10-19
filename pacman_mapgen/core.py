@@ -253,6 +253,16 @@ class Direction(Position, Enum):
         """
         return _REVERSE_DIRECTIONS[self]
 
+    def perpendicular(self) -> List[Direction]:
+        """Directions perpendicular to self.
+
+        Returns:
+            A list with the directions perpendicular to `self`.
+        """
+        if self is Direction.LEFT or self is Direction.RIGHT:
+            return [Direction.UP, Direction.DOWN]
+        return [Direction.LEFT, Direction.RIGHT]
+
 
 _REVERSE_DIRECTIONS = MappingProxyType(
     {
@@ -278,6 +288,14 @@ class Cell(object):
             direction: Direction of the wall that must be marked as open.
         """
         self._walls[direction] = False
+
+    def count_open(self) -> int:
+        """Count number of open walls.
+
+        Returns:
+            Number of open walls.
+        """
+        return sum(self.is_open(direction) for direction in Direction)
 
     def is_open(self, direction: Direction) -> bool:
         """Tests whether the wall is open or not.
@@ -428,6 +446,9 @@ class LayoutGenerator(abc.ABC):
         num_rows: Number of rows.
         num_cols: Number of columns.
         seed: To initialize the random number generator.
+        cycle_probability: Probability to connect additional nodes
+            after the spanning-tree generation to create cycles in
+            the layout.
     """
 
     def __init__(
@@ -435,16 +456,20 @@ class LayoutGenerator(abc.ABC):
         width: int,
         height: int,
         seed: int,
+        cycle_probability: float,
     ) -> None:
         self.width = width
         self.height = height
         self.seed = seed
         self.rand = Random(self.seed)
+        self.cycle_probability = cycle_probability
 
         if self.width <= 2:
             raise ValueError("Number of rows must be greater than 2")
         if self.height <= 2:
             raise ValueError("Number of columns must be greater than 2")
+        if self.cycle_probability < 0 or self.cycle_probability > 1:
+            raise ValueError("Cycle probability must be between 0 and 1")
 
     def generate_layout(
         self,
@@ -455,7 +480,7 @@ class LayoutGenerator(abc.ABC):
 
         Args:
             problem_type: Pac-Man project problem type. Pac-Man and
-                foods' location will be set acording to the type.
+                foods' location will be set according to the type.
             max_food: Maximum number of food cells when problem type
                 is `ProblemType.Food`.
 
@@ -478,7 +503,9 @@ class LayoutGenerator(abc.ABC):
         for pos in food_pos:
             grid[pos].type = CellType.FOOD
 
-        layout = self._generate_plain_layout(grid)
+        self._create_paths(grid)
+        self._create_cycles(grid)
+        layout = grid.to_layout()
 
         # Fill if type is food
         if problem_type is ProblemType.FOOD:
@@ -585,12 +612,85 @@ class LayoutGenerator(abc.ABC):
         )
 
     @abc.abstractmethod
-    def _generate_plain_layout(self, grid: CellGrid) -> Layout:
+    def _create_paths(self, grid: CellGrid) -> None:
         """Generates a new layout without setting the cell values.
 
         Args:
             grid: A previously initialized grid.
-
-        Returns:
-            A list of list (num rows x num columns) with the generated map.
         """  # noqa: DAR202
+
+    def _create_cycles(self, grid: CellGrid) -> None:
+        """Open additional walls to create cycles.
+
+        Given a spanning-tree like grid, open some additional
+        walls in order to create cycles. The operation opens walls with
+        a certain probability while avoiding situations in which 4
+        adjacent nodes are all open with one another.
+
+        For example, in the following configuration we want to avoid
+        opening the wall between 3 and 4.
+
+            1 -- 2
+            |    |
+            3    4
+
+        Args:
+            grid: A previously generated grid with a spanning-tree like
+                structure
+        """
+        positions = (
+            Position(x_coord=x_coord, y_coord=y_coord)
+            for x_coord in range(self.width)
+            for y_coord in range(self.height)
+            if self.rand.random() < self.cycle_probability
+        )
+
+        for pos in positions:
+            cell = grid[pos]
+
+            closed = [
+                (neighbor, direction)
+                for neighbor, direction in grid.get_neighbors(pos)
+                if not cell.is_open(direction)
+                and _create_cycle_ok(grid, pos, neighbor, direction)
+            ]
+            if closed:
+                self.rand.shuffle(closed)
+                _, direction = closed[0]
+                grid.open_wall(pos, direction)
+
+
+def _create_cycle_ok(
+    grid: CellGrid,
+    position: Position,
+    neighbor: Position,
+    direction: Direction,
+) -> bool:
+    # Example, given
+    #
+    # 1 -- 2
+    # |    |
+    # 3    4
+    #
+    # When trying to open the path from 3 to 4 the following code
+    # tests:
+    #
+    #  * 1 is a valid position
+    #  * if 3 and 1 are connected
+    #  * if 4 and 2 are connected
+    #  * if 1 and 2 are connected
+    #
+    #  When this happens opening 3 and 4 would create to many
+    #  openings, which is undesirable as in Pac-Man these do not
+    #  look "nice".
+    for p_direction in direction.perpendicular():
+        p_position = position + p_direction  # perpendicular to position
+
+        if (  # noqa: WPS337
+            not grid.is_out_of_bounds(p_position)
+            and grid[position].is_open(p_direction)
+            and grid[neighbor].is_open(p_direction)
+            and grid[p_position].is_open(direction)
+        ):
+            return False
+    return True
